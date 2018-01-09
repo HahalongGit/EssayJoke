@@ -27,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
         Log.e("TAG","A-onCreate:"+MainActivity.this);
+        tvTextContent.setText("通过注解设置文字");
     }
 
 
@@ -40,5 +41,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         Log.e("TAG","A-main-onNewIntent");
+        Log.e("TAG","A-onNewIntent:"+MainActivity.this);
     }
 }
