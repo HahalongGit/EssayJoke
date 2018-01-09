@@ -4,18 +4,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    tools:context="com.lll.essay.joke.MainActivity">
+    android:gravity="center"
+    tools:context="com.lll.essay.joke.BActivity">
 
     <TextView
-        android:id="@+id/tv_textContent"
+        android:text="这个是D"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="这个是A" />
+        android:layout_height="wrap_content" />
 
     <Button
-        android:id="@+id/btn_startB"
-        android:text="启动B"
+        android:id="@+id/btn_startA"
+        android:text="启动A"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
