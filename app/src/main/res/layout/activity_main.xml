@@ -9,15 +9,16 @@
 
     <TextView
         android:id="@+id/tv_textContent"
-        android:layout_width="wrap_content"
-        android:padding="10dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center"
+        android:clickable="true"
+        android:padding="10dp"
         android:text="这个是A" />
 
     <Button
-        android:id="@+id/btn_startB"
-        android:text="启动B"
-        android:visibility="visible"
+        android:text="测试注解Button"
+        android:id="@+id/btn_test"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
