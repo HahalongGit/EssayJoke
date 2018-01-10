@@ -41,6 +41,35 @@ public class ViewUtils {
         injectEvent(viewFinder, object);
     }
 
+    /**
+     * 注入Field
+     *
+     * @param viewFinder
+     * @param object     对象
+     */
+    private static void injectField(ViewFinder viewFinder, Object object) {
+        //1.找到View，
+        Class<?> clazz = object.getClass();
+//        Field[] fields = clazz.getFields();//getField()只能访问public 的字段，不能访问其他类型的字段，可以访问父类的字段
+        Field[] fields = clazz.getDeclaredFields(); //可以访问任意类型的字段，但是不能访问父类的字段
+        for (Field field : fields) {
+            ViewById viewById = field.getAnnotation(ViewById.class);
+            if (viewById != null) {
+                int value = viewById.value();
+                //2.findViewById
+                View view = viewFinder.findViewById(value);
+                if (view != null) {
+                    field.setAccessible(true);//可以注入所有的修饰符
+                    //3.动态注入VIEW
+                    try {
+                        field.set(object, view);
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
 
     /**
      * 事件注入
@@ -140,33 +169,5 @@ public class ViewUtils {
         }
     }
 
-    /**
-     * 注入Field
-     *
-     * @param viewFinder
-     * @param object     对象
-     */
-    private static void injectField(ViewFinder viewFinder, Object object) {
-        //1.找到View，
-        Class<?> clazz = object.getClass();
-//        Field[] fields = clazz.getFields();//getField()只能访问public 的字段，不能访问其他类型的字段，可以访问父类的字段
-        Field[] fields = clazz.getDeclaredFields(); //可以访问任意类型的字段，但是不能访问父类的字段
-        for (Field field : fields) {
-            ViewById viewById = field.getAnnotation(ViewById.class);
-            if (viewById != null) {
-                int value = viewById.value();
-                //2.findViewById
-                View view = viewFinder.findViewById(value);
-                if (view != null) {
-                    field.setAccessible(true);//可以注入所有的修饰符
-                    //3.动态注入VIEW
-                    try {
-                        field.set(object, view);
-                    } catch (IllegalAccessException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-    }
+
 }

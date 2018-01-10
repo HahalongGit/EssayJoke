@@ -1,0 +1,89 @@
+
+实现一个简单的自定义IOC的流程
+
+Field的注入：
+1.定义一个注解，用来接收需要用IOC实现功能的参数，比如接受findViewById();的id参数，或者其他类型的参数。
+2.定义一个工具类处理这个IOC逻辑。比如我们要处理Activity的注解，就是为了处理findViewById()。
+  我们需要的处理流程是：
+  1.传入要处理的Activity
+  2.通过反射获取这个类的所有字段
+     Class<?> clazz = object.getClass();
+     Field[] fields = clazz.getDeclaredFields(); //可以访问任意类型的字段，但是不能访问父类的字段
+  3.判断每个字段是不是添加了注解，并获取注解值
+    ViewById viewById = field.getAnnotation(ViewById.class);
+  4.通过这个注解的值（id）和当前Activity的findViewById()方法处理每个字段，并注入View
+     if (viewById != null) {
+        int value = viewById.value();
+        //findViewById
+        View view = viewFinder.findViewById(value);
+        if (view != null) {
+            field.setAccessible(true);//可以注入所有的修饰符
+            //动态注入VIEW
+            try {
+                field.set(object, view);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+  这样就完成了IOC实现运行时动态注入View
+  说明：
+  上面解释是按照Activity注解来进行的。要是想注解View就要设置不同的参数inject(Activity activity),inject(View view)
+  需要对这两个不同类型的参数统一化，我们创建一个类ViewFinder，写不同的构造方法传入Activity或者View.转化为一个处理findViewById的
+  方法给工具类的inject()方法使用。
+   public View findViewById(int viewId){
+       return mActivity!=null?mActivity.findViewById(viewId):mView.findViewById(viewId);
+   }
+
+
+事件的注入：
+事件的注入和Field的注入类似，不同的是，需要反射获取事件注入的方法而不是Field
+  1.通过放射获取被添加注解的方法。
+     Class<?> clazz = object.getClass();
+     Method[] methods = clazz.getDeclaredMethods();
+  2.获取这些方法上是否添加了注解。并获取注解的值。
+    for (Method method : methods) {//获取Activity中的所有的方法（注解传入了this,也就是Activity）
+        OnClick onClick = method.getAnnotation(OnClick.class);
+        if (onClick != null) {//找到添加了OnClick注解的这个方法
+            int[] viewIds = onClick.value();
+            for (int viewId : viewIds) {
+                //3.findViewById 找到View
+                View view = viewFinder.findViewById(viewId);
+                if (view != null) {
+                    //4.反射执行方法
+                    view.setOnClickListener(new DeclaredOnClickListener(method, object, isCheckNet));
+                }
+            }
+        }
+    }
+  3.如果注解有值，找到这个注解的id的View，添加点击事件。
+     if (onClick != null) {//找到添加了OnClick注解的这个方法
+                int[] viewIds = onClick.value();
+                for (int viewId : viewIds) {
+                    //3.findViewById 找到View
+                    View view = viewFinder.findViewById(viewId);
+                    if (view != null) {
+                        //反射执行方法
+                        view.setOnClickListener(new DeclaredOnClickListener(method, object, isCheckNet));
+                    }
+                }
+            }
+
+  4.点击事件中执行不同id的view的事件点击方法（反射执行）
+    try {
+            //给所有的OnClick进行的try catch,点击事件异常不会闪退，会有异常的日志（特别注意）
+            mMethod.setAccessible(true);//设置访问所有的方法
+            mMethod.invoke(mObject, v);//执行带有一个View参数的方法onClick()
+        } catch (Exception e) {
+            e.printStackTrace();
+            //执行没有View参数的情况下的点击方法
+            try {
+                mMethod.invoke(mObject, null);//执行mObject （Activity）这个类的，参数是null的方法
+            } catch (IllegalAccessException e1) {
+                e1.printStackTrace();
+            } catch (InvocationTargetException e1) {
+                e1.printStackTrace();
+            }
+        }
+    --------------------------------------------------------------------------
+    mMethod.invoke(mObject, v);//执行带有一个view参数的方法onClick();
