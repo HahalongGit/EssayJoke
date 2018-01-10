@@ -1,0 +1,126 @@
+android 提供了一种AsyncTask 实现异步操作。AsyncTask到底是怎么实现的。一起看一下源码。
+1.AsyncTask 使用，创建一个AsyncTask对象，调用execute();方法。
+  execute()方法调用的时候会调用是不是已经执行了这个AsyncTask ，如果执行过了就报异常。
+
+2.最初的时候执行：onPreExecute();做准备。
+  然后exec.execute(mFuture);执行mFuture；
+  exec.execute(mFuture);这个方法是SerialExecutor 这个内部类的方法。
+     public synchronized void execute(final Runnable r) {
+              mTasks.offer(new Runnable() {
+                  public void run() {
+                      try {
+                          r.run();
+                      } finally {
+                          scheduleNext();
+                      }
+                  }
+              });
+              if (mActive == null) {
+                  scheduleNext();
+              }
+          }
+  代码中调用了 r.run();也就是mFuture的 r.run();
+  FutureTask 创建的时候传入了一个WorkerRunnable 对象 mWorker。
+   mFuture = new FutureTask<Result>(mWorker)；
+   然后查看FutureTask 的run()方法：
+     public void run() {
+           if (state != NEW ||
+               !U.compareAndSwapObject(this, RUNNER, null, Thread.currentThread()))
+               return;
+           try {
+               Callable<V> c = callable;
+               if (c != null && state == NEW) {
+                   V result;
+                   boolean ran;
+                   try {
+                       result = c.call();
+                       ran = true;
+                   } catch (Throwable ex) {
+                       result = null;
+                       ran = false;
+                       setException(ex);
+                   }
+                   if (ran)
+                       set(result);
+               }
+           } finally {
+               // runner must be non-null until state is settled to
+               // prevent concurrent calls to run()
+               runner = null;
+               // state must be re-read after nulling runner to prevent
+               // leaked interrupts
+               int s = state;
+               if (s >= INTERRUPTING)
+                   handlePossibleCancellationInterrupt(s);
+           }
+       }
+
+   发现执行了result = c.call();
+   这里的c就是 Callable<V> c = callable;FutureTask 构造传入的mWorker。
+   同时我们发现FutureTask<V> implements RunnableFuture<V> ，这个FutureTask 实现了RunnableFuture 接口，这个接口是
+   RunnableFuture<V> extends Runnable, Future<V>  Runnable 的子类，这是一个子线程。也就是在子线程中执行了FutureTask
+   mWorker 等。
+   call()方法代码：
+    public Result call() throws Exception {
+           mTaskInvoked.set(true);
+           Result result = null;
+           try {
+               Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+               //noinspection unchecked
+               result = doInBackground(mParams);
+               Binder.flushPendingCommands();
+           } catch (Throwable tr) {
+               mCancelled.set(true);
+               throw tr;
+           } finally {
+               postResult(result);
+           }
+           return result;
+       }
+    这个方法中调用了result = doInBackground(mParams); 和 postResult(result);
+    这里也就是说子线程中执行了doInBackground 和  postResult(result);
+    doInBackground()就是我们在代码中处理子程序操作的地方。
+    看postResult(result);代码发现使用了handler操作：
+     private Result postResult(Result result) {
+            @SuppressWarnings("unchecked")
+            Message message = getHandler().obtainMessage(MESSAGE_POST_RESULT,
+                    new AsyncTaskResult<Result>(this, result));
+            message.sendToTarget();
+            return result;
+        }
+     handler 我们知道，处理子线程和主线程之间数据传递的问题。这里也就把数据传到主线程了,handler的handleMessage()方法处理：
+       private static class InternalHandler extends Handler {
+             public InternalHandler(Looper looper) {
+                 super(looper);
+             }
+
+             @SuppressWarnings({"unchecked", "RawUseOfParameterizedType"})
+             @Override
+             public void handleMessage(Message msg) {
+                 AsyncTaskResult<?> result = (AsyncTaskResult<?>) msg.obj;
+                 switch (msg.what) {
+                     case MESSAGE_POST_RESULT:
+                         // There is only one result
+                         result.mTask.finish(result.mData[0]);
+                         break;
+                     case MESSAGE_POST_PROGRESS:
+                         result.mTask.onProgressUpdate(result.mData);
+                         break;
+                 }
+             }
+         }
+     调用result.mTask.finish(result.mData[0]);
+     找到mTask的finish()方法：
+       private void finish(Result result) {
+             if (isCancelled()) {
+                 onCancelled(result);
+             } else {
+                 onPostExecute(result);
+             }
+             mStatus = Status.FINISHED;
+         }
+
+     最后处理了onCancelled(result);和onPostExecute(result);并修改了mStatus 的状态，这样一个Task任务就完成了。
+
+     总结：
+     也就是说android 提供的AsyncTask 底层是用了子线程加Handler的方式处理的异步操作。
