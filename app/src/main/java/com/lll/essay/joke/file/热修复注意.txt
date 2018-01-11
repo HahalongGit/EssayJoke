@@ -1,0 +1,48 @@
+使用阿里巴巴提供的开源项目进行热修复：
+
+tools工具命令：
+-f : 没有Bug的新版本apk
+-t : 有bug的旧版本apk
+-o : 生成的补丁文件所放的文件夹
+-k : 签名打包密钥
+-p : 签名打包密钥密码
+-a : 签名密钥别名
+-e : 签名别名密码（这样一般和密钥密码一致）
+
+>apkpatch.bat -f app-release.apk -t app-old.apk -o out -k joke,jks -p joke123456 -a joke -e joke123456
+
+步骤：
+    1.添加热修复 包 compile 'com.alipay.euler:andfix:0.5.0@aar'
+    2.在Application 中配置 工具：
+        patchManager = new PatchManager(this);
+          PackageManager packageManager = getPackageManager();
+          try {
+              PackageInfo packageInfo = packageManager.getPackageInfo(getPackageName(), 0);
+              patchManager.init(packageInfo.versionName);//current version
+              patchManager.loadPatch();
+          } catch (PackageManager.NameNotFoundException e) {
+              e.printStackTrace();
+          }
+    3. 启动的Activity中加载修复
+       File fixFile = new File(Environment.getExternalStorageDirectory(),"fix.apatch");
+          if(fixFile.exists()){
+              try {
+                  BaseApplication.patchManager.addPatch(fixFile.getAbsolutePath());
+                  Toast.makeText(this, "修复成功", Toast.LENGTH_SHORT).show();
+              } catch (IOException e) {
+                  e.printStackTrace();
+                  Toast.makeText(this, "修复失败", Toast.LENGTH_SHORT).show();
+              }
+          }
+
+    以上就是使用阿里提供的热修复的步骤。
+
+    注意：
+    防止没有读写内部存储的权限，读取文件失败，修复失败。（动态权限设置）
+
+    网上有人使用的分包的方式，可以简化包的大小，只给有bug的class打包。
+    不要混淆第三方提供的类，方法，防止找不到相应的方法。
+    一般我们的apk包可能需要使用第三方加固，所以差分包一定要在加固前生成。
+
+    需要设置分包，一般会在项目的方法超过65536的时候才能分包。否则需要我们自己设置。Android的官网提供了这个情况下的分包的办法。
+    如果运行时dex分包文件过大会导致启动变慢。

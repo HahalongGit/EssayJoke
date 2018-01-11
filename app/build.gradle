@@ -5,7 +5,7 @@ android {
     defaultConfig {
         applicationId "com.lll.essay.joke"
         minSdkVersion 15
-        targetSdkVersion 23
+        targetSdkVersion 22
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -30,4 +30,5 @@ dependencies {
     annotationProcessor 'com.jakewharton:butterknife-compiler:8.8.1'
     implementation project(':baselibrary')
     implementation project(':framelibrary')
+    compile 'com.alipay.euler:andfix:0.5.0@aar'
 }
