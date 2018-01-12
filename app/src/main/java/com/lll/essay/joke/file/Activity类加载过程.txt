@@ -1,0 +1,52 @@
+Activity的创建和加载不是普通类的创建的加载。是通过反射加载的类
+从startActivity()方法开始：
+最后调用 Instrumentation的 execStartActivity();
+最后调用 Instrumentation的
+ActivityManager.getService()
+     .startActivity(whoThread, who.getBasePackageName(), intent,
+             intent.resolveTypeIfNeeded(who.getContentResolver()),
+             token, target != null ? target.mEmbeddedID : null,
+             requestCode, 0, null, options);
+     方法，
+ 然后调用ActivityManager的相关方法执行进程间通信。
+
+ 最后启动流程回到了ActivityThread 这个类
+ 开始到scheduleLaunchActivity();这个方法：通过Hanlder调用 handleLaunchActivity(r, null, "LAUNCH_ACTIVITY");
+ 最终在这个方法中执行了 Activity a = performLaunchActivity(r, customIntent);
+ 这里加载Activity通过反射方法和ClassLoader加载创建：
+  public Activity newActivity(ClassLoader cl, String className,
+             Intent intent)
+             throws InstantiationException, IllegalAccessException,
+             ClassNotFoundException {
+         return (Activity)cl.loadClass(className).newInstance();
+     }
+ 加载完成后：
+ 这里开始执行Activity的生产周期的方法，这个方法中执行
+ mInstrumentation.callActivityOnCreate(activity, r.state);这个代码调用了Activity的
+ performCreate方法：
+        public void callActivityOnCreate(Activity activity, Bundle icicle) {
+             prePerformCreate(activity);
+             activity.performCreate(icicle);
+             postPerformCreate(activity);
+         }
+ 然后在这个方法中调用onCreate方法：
+   final void performCreate(Bundle icicle) {
+         restoreHasCurrentPermissionRequest(icicle);
+         onCreate(icicle);
+         mActivityTransitionState.readState(icicle);
+         performCreateCommon();
+     }
+
+
+
+ 上面的Activity a = performLaunchActivity(r, customIntent);执行完成，创建了Activity然后执行
+  handleResumeActivity();->
+   r = performResumeActivity(token, clearHide, reason);
+   最终执行：r.activity.performResume();
+
+
+  也就是最终执行整个生命周期
+
+
+
+
