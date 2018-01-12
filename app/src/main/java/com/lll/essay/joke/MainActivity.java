@@ -1,8 +1,9 @@
 package com.lll.essay.joke;
 
+import android.content.DialogInterface;
 import android.os.Environment;
+import android.support.v7.app.AlertDialog;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -65,7 +66,25 @@ public class MainActivity extends BaseSkinActivity {
     @CheckNet
     @OnClick({R.id.tv_textContent,R.id.btn_test})
     public void onClick(View view){
-        Toast.makeText(this, "点击"+(3/0), Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, "点击"+(3/0), Toast.LENGTH_SHORT).show();
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("提示");
+        builder.setMessage("确定删除？");
+        builder.setPositiveButton("确定", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Toast.makeText(MainActivity.this, "确定", Toast.LENGTH_SHORT).show();
+            }
+        });
+        builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Toast.makeText(MainActivity.this, "取消", Toast.LENGTH_SHORT).show();
+            }
+        });
+        AlertDialog alertDialog = builder.create();
+        alertDialog.setCanceledOnTouchOutside(false);
+        alertDialog.show();
     }
 
 }
